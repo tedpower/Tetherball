@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>settings</title>
+	<meta name = "viewport" content = "width = device-width">
+</head>
+<body>
+
+{% if alert %}
+<div>{{ alert }}</div>
+{% endif %}
+
+<h1>Settings</h1>
+<p>Hi {{ user.fs_firstName }}</p>
+
+<hr/>
+<form action="/settings" method="post">
+    <p>Phone: <input type="text" name="phoneNumber" value="{{user.phone_number}}" /></p>
+    <hr/>
+    {% for venue, hereNow in zippedVenues %}
+        <p>{{ venue.fs_name }}</p>
+        <p>{{ venue.fs_address }}, {{ venue.fs_city }} {{ venue.fs_state }}</p>
+        {% if hereNow %}
+            <p>Here Now</p>
+            {% for person in hereNow %}
+                <div>
+                    <img src="{{ person.temp_photo }}"><br/>
+                    {{ person.temp_firstName }} {{ person.temp_lastName }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        <p><input type="checkbox" name="{{ venue.fs_venue_id }}-{{user.fs_user_id}}-freqAlert" {% if venue.freqAlert %}checked="yes"{% endif %}/>
+        Text me when someone who's been here more than 
+        <input type="text" name="{{ venue.fs_venue_id }}-{{user.fs_user_id}}-freqAlertVal" value="{{ venue.freqAlertVal }}" /> 
+        times in the past 60 days checks in</p>
+        <p><input type="checkbox" name="{{ venue.fs_venue_id }}-{{user.fs_user_id}}-mayorAlert" {% if venue.mayorAlert %}checked="yes"{% endif %}/>
+        Text me when the mayor checks in</p>
+        <hr/>
+    {% endfor %}
+    
+    <input type="submit" value="Save" />
+</form>
+<hr/>
+<a href="/logout">Log out</a>
+</body>
+</html>

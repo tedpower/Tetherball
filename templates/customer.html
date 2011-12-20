@@ -1,0 +1,31 @@
+<div class="inner">
+<div id="bio">
+  <img src="{{ customer.fs_photo }}">
+  <div id="name">{{ customer.fs_firstName }}{% if customer.fs_lastName %} {{ customer.fs_lastName }}{% endif %}</div>
+  <div id="hometown">{{ customer.fs_homeCity }}</div>
+</div>
+
+<div class="chunk">{{ customer.fs_firstName }} has been here {{ customer.checkinCount }} 
+    {% if customer.checkinCount > 1 %}times{% else %}time{% endif %} 
+    <div class="meta">Past 60 days</div>
+</div>
+
+{% if customer.isMayor %}
+    <div class="chunk">{{ customer.fs_firstName }} is the reigning mayor</div>
+{% endif %}
+
+{% if customer.fs_twitter %}
+    <div class="chunk">
+        <a href="twitter.com/{{ customer.fs_twitter }}">@{{ customer.fs_twitter }}</a>
+        {% if customer.twitter_bio %}
+          <div class="meta">{{ customer.twitter_bio }}</div>
+        {% endif %}
+    </div>
+{% endif %}
+
+{% if customer.tipsHere %}
+    {% for tip in customer.get_tips %}
+        <div class="chunk">{{ tip.fs_tip_text }}</div>
+    {% endfor %}
+{% endif %}
+</div>

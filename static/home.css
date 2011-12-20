@@ -1,0 +1,25 @@
+html, body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background-color: #BDC0CC;
+	font-family: Helvetica, Arial, sans-serif;
+	font-size: 13px;
+	text-align: center;
+}
+
+#content {
+	width: 840px;
+	margin: 0 auto;
+}
+#copy {
+	width: 340px;
+	float: left;
+	margin-top: 180px;
+	text-align: left;
+}
+#photo {
+	margin-top: 30px;
+	width: 400px;
+	float: right;
+}

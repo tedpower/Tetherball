@@ -1,0 +1,19 @@
+<script>
+  $("#people img").click(function(){
+    var customer_id = $(this).attr('id');
+    var customer_url = "/customer/" + customer_id
+    $.ajax({
+      url: customer_url,
+      cache: false,
+      success: function(html){
+        $("#receipt #card .front").html(html);
+      }
+    });
+  });
+</script>
+{% for customer in hereNow %}
+  <div class="item">
+    <img src="{{ customer.fs_photo}}" id="{{ customer.fs_user_id }}-{{ customer.fs_venue_id }}">
+    <label>{{ customer.fs_firstName }} {{ customer.fs_lastName }}</label>
+  </div>
+{% endfor %}

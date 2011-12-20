@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Error</title>
+</head>
+<body>
+
+{% if error == 1 %}
+<p>Hey you don't appear to manage any venues on foursquare.  For more information about claiming your venue, <a href="https://foursquare.com/business/merchants/claiming">go here</a>.</p>
+{% endif %}
+
+{% if error == 2 %}
+<p>For security we only display previous check-ins for 1 day after the check-in occured</p>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>boom</title>
+  <link href="../static/style.css" type="text/css" rel="stylesheet" />
+  <meta name = "viewport" content = "user-scalable=no, width=device-height">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+
+  <script>
+  function updateHereNow() {
+    $.ajax({
+      url: "/hereNow",
+      cache: false,
+      success: function(html){
+        $("#people").html(html);
+      }
+    });
+    setTimeout('updateHereNow()', 10000);
+  }
+  $(document).ready(function() {
+    updateHereNow();
+    $("#shelf img").click(function(){
+      $('#card').toggleClass('flipped');
+    });
+    $(document).bind(
+      'touchmove',
+      function(e) {
+        e.preventDefault();
+      }
+    );
+  });
+  </script>
+</head>
+<body>
+
+  <div id="nav">
+    <div id="navMenu">
+      <a href="#" id="specials">Specials & Stats</a>
+      <a href="/settings" id="settings">Settings</a>
+      <a href="/logout" id="logout">Log Out</a>
+    </div>
+    <h1>La Colombe Torrefaction</h1>
+  </div>
+
+  <div id="people"></div>
+
+  <div id="receipt">
+    <div id="card" class="card">
+      <div id="front" class="front face">
+        <p>Loading...</p>
+      </div>
+      <div id="back" class="back face">
+        <div class="inner"><p>Hi!</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="shelf">
+    <div class="item">
+      <img src="../static/items/1.png" width="90" height="90">
+      <label>Tea</label>
+    </div>
+    <div class="item">
+      <img src="../static/items/2.png" width="90" height="90">
+      <label>Drip Coffee</label>
+    </div>
+    <div class="item">
+      <img src="../static/items/3.png" width="90" height="90">
+      <label>Croissant</label>
+    </div>
+    <div class="item">
+      <img src="../static/items/4.png" width="90" height="90">
+      <label>Muffin</label>
+    </div>
+    <div class="item">
+      <img src="../static/items/5.png" width="90" height="90">
+      <label>Cappuciono</label>
+    </div>
+    <div class="item">
+      <img src="../static/items/6.png" width="90" height="90">
+      <label>Black</label>
+    </div>
+  </div>
+
+</body>
+</html>
