@@ -355,7 +355,7 @@ class Charge(webapp.RequestHandler):
             cardCustomerToken = cardCustomer.stripe_token
             stripe.api_key = config.stripe_private_key
             stripe.Charge.create(
-              amount=400,
+              amount=int(total*100),
               currency="usd",
               customer=cardCustomerToken,
               description="Charge it"

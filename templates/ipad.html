@@ -40,7 +40,6 @@
 
     $("#charge").click(function(){
       customer_id = $('#bio').attr('class').substring(1);
-      alert(customer_id);
       $.ajax({
         url: "/charge?total=" + total + "&customer=" + customer_id,
         cache: false,
