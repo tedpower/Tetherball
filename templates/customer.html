@@ -1,12 +1,12 @@
 <div class="inner">
-<div id="bio">
+<div id="bio" class="c{{ customer_id }}">
   <img src="{{ customer.fs_photo }}">
   <div id="name">{{ customer.fs_firstName }}{% if customer.fs_lastName %} {{ customer.fs_lastName }}{% endif %}</div>
   <div id="hometown">{{ customer.fs_homeCity }}</div>
 </div>
 
-<div class="chunk">{{ customer.fs_firstName }} has been here {{ customer.checkinCount }} 
-    {% if customer.checkinCount > 1 %}times{% else %}time{% endif %} 
+<div class="chunk">{{ customer.fs_firstName }} has been here {{ customer.checkinCount }}
+    {% if customer.checkinCount > 1 %}times{% else %}time{% endif %}
     <div class="meta">Past 60 days</div>
 </div>
 
@@ -28,4 +28,9 @@
         <div class="chunk">{{ tip.fs_tip_text }}</div>
     {% endfor %}
 {% endif %}
+
+{% if hasCard %}
+  {{ hasCard }}
+{% endif %}
+
 </div>

@@ -60,6 +60,7 @@ a {
 
 #navMenu a {
     color: #fff;
+    padding-left: 20px;
 }
 
 #nav h1 {
@@ -143,4 +144,34 @@ a {
   margin: 16px 0;
   border-bottom: 1px solid rgba(0,0,0,.2);
   padding-bottom: 16px;
+}
+
+#total {
+  border-bottom: 3px solid #333;
+  padding-bottom: 14px;
+  font-size: 42px;
+  text-align: right;
+  font-weight: bold;
+}
+
+.price {
+  float: right;
+}
+
+.lineItem {
+  font-weight: bold;
+  line-height: 30px;
+  border-bottom: 1px solid rgba(0,0,0,.2);
+}
+
+#charge {
+  position: fixed;
+  bottom: 0px;
+  text-align: center;
+  width: 238px;
+  margin: 0 auto;
+  border: 1px solid black;
+  margin: 20px;
+  padding: 20px;
+  -webkit-border-radius: 5px;
 }

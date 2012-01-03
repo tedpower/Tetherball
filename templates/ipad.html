@@ -21,10 +21,35 @@
     setTimeout('updateHereNow()', 10000);
   }
   $(document).ready(function() {
+    priceKey = [1.5, 1.5, 2, 2, 4, 4];
+    total = 0;
     updateHereNow();
-    $("#shelf img").click(function(){
-      $('#card').toggleClass('flipped');
+
+    $("#shelf .item").click(function(){
+      if (!($('#card').hasClass('flipped'))) {
+        $('#card').toggleClass('flipped');
+      }
+      var shelfIndx = Number($(this).attr("id").substring(1));
+      total = Number(total) + priceKey[shelfIndx];
+      total = total.toFixed(2);
+      item = $(this).children().get(1);
+      itemText = $(item).text();
+      $('#total').html("$" + total);
+      $('#back .inner').append("<div class='lineItem'><div class='price'> $" + priceKey[shelfIndx].toFixed(2) + "</div><div>" + itemText + "</div></div>");
     });
+
+    $("#charge").click(function(){
+      customer_id = $('#bio').attr('class').substring(1);
+      alert(customer_id);
+      $.ajax({
+        url: "/charge?total=" + total + "&customer=" + customer_id,
+        cache: false,
+        success: function(html){
+          alert('Charged $' + total);
+        }
+      });
+    });
+
     $(document).bind(
       'touchmove',
       function(e) {
@@ -53,35 +78,38 @@
         <p>Loading...</p>
       </div>
       <div id="back" class="back face">
-        <div class="inner"><p>Hi!</p></div>
+        <div class="inner">
+          <div id="total"></div>
+        </div>
+        <div id="charge">Charge</div>
       </div>
     </div>
   </div>
 
   <div id="shelf">
-    <div class="item">
+    <div id="s0" class="item">
       <img src="../static/items/1.png" width="90" height="90">
       <label>Tea</label>
     </div>
-    <div class="item">
+    <div id="s1" class="item">
       <img src="../static/items/2.png" width="90" height="90">
       <label>Drip Coffee</label>
     </div>
-    <div class="item">
+    <div id="s2" class="item">
       <img src="../static/items/3.png" width="90" height="90">
       <label>Croissant</label>
     </div>
-    <div class="item">
+    <div id="s3" class="item">
       <img src="../static/items/4.png" width="90" height="90">
       <label>Muffin</label>
     </div>
-    <div class="item">
+    <div id="s4" class="item">
       <img src="../static/items/5.png" width="90" height="90">
-      <label>Cappuciono</label>
+      <label>Cappuccino</label>
     </div>
-    <div class="item">
+    <div id="s5" class="item">
       <img src="../static/items/6.png" width="90" height="90">
-      <label>Black</label>
+      <label>Pure Black</label>
     </div>
   </div>
 

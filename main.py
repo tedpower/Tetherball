@@ -15,6 +15,7 @@ import cgi
 import datetime
 import time
 import calendar
+import stripe
 from models import *
 
 class Index(webapp.RequestHandler):
@@ -31,64 +32,91 @@ class Index(webapp.RequestHandler):
             self.response.out.write(template.render(path, {}))
 
 class FourSquareOAuthRequest(webapp.RequestHandler):
-    
     def get(self):
         self.redirect("https://foursquare.com/oauth2/authenticate?client_id=%s&response_type=code&redirect_uri=%s" % (config.fs_key, config.fs_return_url))
 
-class FourSquareOAuthRequestValid(webapp.RequestHandler):
+class RequestValid(webapp.RequestHandler):
     def get(self):
         code = self.request.get('code')
+
         url = "https://foursquare.com/oauth2/access_token?client_id=%s&client_secret=%s&grant_type=authorization_code&redirect_uri=%s&code=%s" % (config.fs_key, config.fs_secret, config.fs_return_url, code)
         logging.info(url)
         auth_json = urlfetch.fetch(url, validate_certificate=False)
         access_token = simplejson.loads(auth_json.content)
-        
-        self_response_url = "https://api.foursquare.com/v2/venues/managed?oauth_token=%s" % (access_token['access_token'])
+
+        self_response_url = "https://api.foursquare.com/v2/users/self?oauth_token=%s" % (access_token['access_token'])
         self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
         self_response = simplejson.loads(self_response_json.content)
-        
-        if not self_response['response']['venues']:
-            self.redirect("/error/1")
-        else:
-            query = db.Query(VenueOwner)
-            query.filter('token =', access_token['access_token'])
-            results = query.fetch(limit=1)
-            if len(results) > 0:
-                logging.info('user exists')
-                user = results[0]
-            else:     
-                self_response_url = "https://api.foursquare.com/v2/users/self?oauth_token=%s" % (access_token['access_token'])
-                self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
-                self_response = simplejson.loads(self_response_json.content)
-                u = uuid.uuid4()        
-                user = VenueOwner(key_name=str(u))
-                user.token = access_token['access_token']
-                user.fs_user_id = str(self_response['response']['user']['id'])
-                user.phone_number = self_response['response']['user']['contact']['phone']
-                user.fs_firstName = self_response['response']['user']['firstName']
-                user.fs_lastName = self_response['response']['user']['lastName']
-                self_response_url = "https://api.foursquare.com/v2/venues/managed?oauth_token=%s" % (access_token['access_token'])
-                self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
-                self_response = simplejson.loads(self_response_json.content)
-                for venue in self_response['response']['venues']:
-                    key = venue['id'] + "-" + user.fs_user_id
-                    managedVenue = ManagedVenue(key_name=key)
-                    managedVenue.fs_venue_id = venue['id']
-                    managedVenue.fs_manager = user.fs_user_id
-                    managedVenue.fs_name = venue['name']
-                    managedVenue.fs_address = venue['location']['address']
-                    managedVenue.fs_city = venue['location']['city']
-                    managedVenue.fs_state = venue['location']['state']
-                    managedVenue.put()
-                    user.venues_managed.append(key)
-                user.put()
 
-            # set the cookie
-            expires = datetime.datetime.now() + datetime.timedelta(weeks=2)
-            expiresString = expires.strftime('%a, %d %b %Y %H:%M:%S') # Wdy, DD-Mon-YY HH:MM:SS GMT
-            self.response.headers.add_header(
-                  'Set-Cookie', 'VenueOwner=%s; expires=%s' % (user.key().name(), expiresString))
-            self.redirect("/settings")
+        query = db.Query(User)
+        query.filter('fs_user_id =', self_response['response']['user']['id'])
+        results = query.fetch(limit=1)
+        if len(results) > 0:
+            logging.info('user exists')
+            user = results[0]
+        else:
+            user = User(key_name=self_response['response']['user']['id'])
+            user.fs_user_id = self_response['response']['user']['id']
+            user.token = access_token['access_token']
+            user.put()
+
+        # set the cookie
+        expires = datetime.datetime.now() + datetime.timedelta(weeks=2)
+        expiresString = expires.strftime('%a, %d %b %Y %H:%M:%S') # Wdy, DD-Mon-YY HH:MM:SS GMT
+        self.response.headers.add_header(
+              'Set-Cookie', 'VenueOwner=%s; expires=%s' % (user.key().name(), expiresString))
+        self.redirect("/card")
+
+
+class VenueSetup(webapp.RequestHandler):
+    def get(self):
+        cookieValue = None
+        try:
+            cookieValue = self.request.cookies['VenueOwner']
+        except KeyError:
+            logging.info('no cookie')
+        if cookieValue:
+            currentUser = User.get_by_key_name(cookieValue)
+
+            self_response_url = "https://api.foursquare.com/v2/venues/managed?oauth_token=%s" % (currentUser.token)
+            self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
+            self_response = simplejson.loads(self_response_json.content)
+
+            if not self_response['response']['venues']:
+                self.redirect("/error/1")
+            else:
+                query = db.Query(VenueOwner)
+                query.filter('token =', currentUser.token)
+                results = query.fetch(limit=1)
+                if len(results) > 0:
+                    logging.info('user exists')
+                    user = results[0]
+                else:
+                    self_response_url = "https://api.foursquare.com/v2/users/self?oauth_token=%s" % (currentUser.token)
+                    self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
+                    self_response = simplejson.loads(self_response_json.content)
+                    user = VenueOwner(key_name=currentUser.fs_user_id)
+                    user.token = currentUser.token
+                    user.fs_user_id = str(self_response['response']['user']['id'])
+                    user.phone_number = self_response['response']['user']['contact']['phone']
+                    user.fs_firstName = self_response['response']['user']['firstName']
+                    user.fs_lastName = self_response['response']['user']['lastName']
+                    self_response_url = "https://api.foursquare.com/v2/venues/managed?oauth_token=%s" % (currentUser.token)
+                    self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
+                    self_response = simplejson.loads(self_response_json.content)
+                    for venue in self_response['response']['venues']:
+                        key = venue['id'] + "-" + user.fs_user_id
+                        managedVenue = ManagedVenue(key_name=key)
+                        managedVenue.fs_venue_id = venue['id']
+                        managedVenue.fs_manager = user.fs_user_id
+                        managedVenue.fs_name = venue['name']
+                        managedVenue.fs_address = venue['location']['address']
+                        managedVenue.fs_city = venue['location']['city']
+                        managedVenue.fs_state = venue['location']['state']
+                        managedVenue.put()
+                        user.venues_managed.append(key)
+                    user.put()
+
 
 class ReceiveHereNow(webapp.RequestHandler):
     """Received a pushed checkin and store it in the datastore."""
@@ -96,7 +124,7 @@ class ReceiveHereNow(webapp.RequestHandler):
         checkin_json = simplejson.loads(self.request.get('checkin'))
         user_id = checkin_json['user']['id']
         venue_id = checkin_json['venue']['id']
-        
+
         # query to get the owner
         query = db.Query(ManagedVenue)
         query.filter('fs_venue_id =', venue_id)
@@ -112,7 +140,7 @@ class ReceiveHereNow(webapp.RequestHandler):
             venueOwner = results[0]
         else:
             logging.info('wwooops')
-        
+
         key = user_id + "-" + venue_id
         customer = Customer.get_or_insert(key)
         customer.fs_user_id = user_id
@@ -129,7 +157,7 @@ class ReceiveHereNow(webapp.RequestHandler):
             customer.fs_gender = checkin_json['user']['gender']
         if 'homeCity' in checkin_json['user']:
             customer.fs_homeCity = checkin_json['user']['homeCity']
-            
+
         # can we just get the check-in count from foursquare?
         customer.expires = datetime.datetime.now() + datetime.timedelta(days=1)
         sixtyDaysAgo = datetime.datetime.now() - datetime.timedelta(days=60)
@@ -138,7 +166,7 @@ class ReceiveHereNow(webapp.RequestHandler):
             if datetime.datetime.fromtimestamp(float(date)) > sixtyDaysAgo:
                 checkinCount += 1
         customer.checkinCount = checkinCount
-        
+
         # check if they're mayor
         self_response_url = "https://api.foursquare.com/v2/venues/%s?oauth_token=%s" % (venue_id, venueOwner.token)
         self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
@@ -148,7 +176,7 @@ class ReceiveHereNow(webapp.RequestHandler):
                 customer.isMayor = True
             else:
                 customer.isMayor = False
-        
+
         # get twitter username
         self_response_url = "https://api.foursquare.com/v2/users/%s?oauth_token=%s" % (customer.fs_user_id, venueOwner.token)
         self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
@@ -160,12 +188,12 @@ class ReceiveHereNow(webapp.RequestHandler):
             self_response = simplejson.loads(self_response_json.content)
             if 'description' in self_response:
                 customer.twitter_bio = self_response['description']
-        
-        # get tips        
+
+        # get tips
         self_response_url = "https://api.foursquare.com/v2/users/%s/tips?sort=recent&oauth_token=%s" % (customer.fs_user_id, venueOwner.token)
         self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
         self_response = simplejson.loads(self_response_json.content)
-        
+
         if self_response['response']['tips']['items']:
             for tip in self_response['response']['tips']['items']:
                 if venue_id == tip['venue']['id']:
@@ -183,20 +211,36 @@ class ReceiveHereNow(webapp.RequestHandler):
                     tipHere.put()
                     if tip_id not in customer.tipsHere:
                         customer.tipsHere.append(tip_id)
-        
+
         # get photos here
-        
-        
+
+
+        query = db.Query(User)
+        query.filter('fs_user_id =', customer.fs_user_id)
+        results = query.fetch(limit=1)
+        if len(results) > 0:
+            logging.info('user exists')
+            customer.has_card = True
         customer.put()
 
 
 class LoyalCustomer(webapp.RequestHandler):
     def get(self, customer_id):
         customer = Customer.get_by_key_name(customer_id)
-        
+
+        cardCustomer = User.get_by_key_name(customer.fs_user_id)
+        if cardCustomer:
+            cardCustomerToken = cardCustomer.stripe_token
+            stripe.api_key = config.stripe_private_key
+            custObj = stripe.Customer.retrieve(cardCustomerToken)
+            logging.info(custObj.active_card.type)
+            hasCard = custObj.active_card.type + " ending with " + custObj.active_card.last4
+        else:
+            hasCard = False
+
         if datetime.datetime.now() < customer.expires:
             path = os.path.join(os.path.dirname(__file__), 'templates/customer.html')
-            self.response.out.write(template.render(path, {'customer' : customer}))
+            self.response.out.write(template.render(path, {'customer' : customer, 'hasCard' : hasCard, 'customer_id': customer_id}))
         else:
             self.redirect("/error/2")
 
@@ -220,22 +264,19 @@ class HereNow(webapp.RequestHandler):
           self_response_json = urlfetch.fetch(self_response_url, validate_certificate=False)
           self_response = simplejson.loads(self_response_json.content)
           logging.info(self_response_url)
-          
-          logging.info(self_response)
-          
+
           hereNow = []
-          
           for visitor in self_response['response']['hereNow']['items']:
-            
               key = visitor['user']['id'] + "-" + thisVenue.fs_venue_id
               customer = memcache.get(key)
               if customer is None:
                   customer = Customer.get_by_key_name(key)
                   memcache.add(key, customer, 3600)
               hereNow.append(customer)
-              
+
           path = os.path.join(os.path.dirname(__file__), 'templates/hereNow.html')
           self.response.out.write(template.render(path, {'hereNow' : hereNow}))
+
 
 class Logout(webapp.RequestHandler):
     def get(self):
@@ -249,23 +290,92 @@ class Logout(webapp.RequestHandler):
                 'Set-Cookie', 'VenueOwner=%s; expires=Thu, 01-Jan-1970 00:00:01 GMT' % cookie)
         self.redirect("/")
 
+
 class Error(webapp.RequestHandler):
     def get(self, error_code):
         logging.info(error_code)
         path = os.path.join(os.path.dirname(__file__), 'templates/error.html')
         self.response.out.write(template.render(path, {'error': int(error_code)}))
 
+
+class Card(webapp.RequestHandler):
+    def get(self):
+        cookieValue = None
+        try:
+            cookieValue = self.request.cookies['VenueOwner']
+        except KeyError:
+            logging.info('no cookie')
+        if cookieValue:
+            currentUser = User.get_by_key_name(cookieValue)
+
+            path = os.path.join(os.path.dirname(__file__), 'templates/card.html')
+            self.response.out.write(template.render(path, {}))
+
+    def post(self):
+        cookieValue = None
+        try:
+            cookieValue = self.request.cookies['VenueOwner']
+        except KeyError:
+            logging.info('no cookie')
+        if cookieValue:
+            currentUser = User.get_by_key_name(cookieValue)
+
+            stripeToken = self.request.get('stripeToken')
+            logging.info(stripeToken)
+
+            currentUser.stripe_token = stripeToken
+
+            stripe.api_key = config.stripe_private_key
+
+            customer = stripe.Customer.create(
+              description=currentUser.fs_user_id,
+              card=stripeToken # obtained with stripe.js
+            )
+
+            currentUser.stripe_token = customer.id
+            currentUser.put()
+
+
+            # charge = stripe.Charge.create(
+            #     amount=1000, # amount in cents, again
+            #     currency="usd",
+            #     card=test,
+            #     description="payinguser@example.com"
+            # )
+
+            self.response.out.write("Your settings have been saved")
+
+
+class Charge(webapp.RequestHandler):
+    def get(self):
+        customer = Customer.get_by_key_name(self.request.get("customer"))
+        total = float(self.request.get("total"))
+        cardCustomer = User.get_by_key_name(customer.fs_user_id)
+        if cardCustomer:
+            cardCustomerToken = cardCustomer.stripe_token
+            stripe.api_key = config.stripe_private_key
+            stripe.Charge.create(
+              amount=400,
+              currency="usd",
+              customer=cardCustomerToken,
+              description="Charge it"
+            )
+
+
 def main():
     application = webapp.WSGIApplication([('/', Index),
                                           ('/auth', FourSquareOAuthRequest),
-                                          ('/authreturn', FourSquareOAuthRequestValid),
+                                          ('/authreturn', RequestValid),
                                           ('/customer/(.*)', LoyalCustomer),
                                           ('/logout', Logout),
                                           ('/error/(.*)', Error),
                                           ('/ipad', iPad),
+                                          ('/card', Card),
+                                          ('/charge', Charge),
                                           ('/checksin', ReceiveHereNow),
-                                          ('/hereNow', HereNow)],
-                                         debug=True)                                         
+                                          ('/hereNow', HereNow),
+                                          ('/venueSetup', VenueSetup)],
+                                         debug=True)
     util.run_wsgi_app(application)
 
 

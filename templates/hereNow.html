@@ -1,5 +1,8 @@
 <script>
-  $("#people img").click(function(){
+  $("#people .item").click(function(){
+    if ($('#card').hasClass('flipped')) {
+      $('#card').toggleClass('flipped');
+    }
     var customer_id = $(this).attr('id');
     var customer_url = "/customer/" + customer_id
     $.ajax({
@@ -12,8 +15,8 @@
   });
 </script>
 {% for customer in hereNow %}
-  <div class="item">
-    <img src="{{ customer.fs_photo}}" id="{{ customer.fs_user_id }}-{{ customer.fs_venue_id }}">
+  <div class="item" id="{{ customer.fs_user_id }}-{{ customer.fs_venue_id }}">
+    <img src="{{ customer.fs_photo }}">
     <label>{{ customer.fs_firstName }} {{ customer.fs_lastName }}</label>
   </div>
 {% endfor %}

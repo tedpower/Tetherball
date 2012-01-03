@@ -14,7 +14,12 @@ class VenueOwner(db.Model):
         for key in self.venues_managed:
             listOfVenues.append(ManagedVenue.get_by_key_name(key))
         return listOfVenues
-        
+
+class User(db.Model):
+    fs_user_id = db.StringProperty()
+    stripe_token = db.StringProperty()
+    token = db.StringProperty()
+
 class Customer(db.Model):
     fs_user_id = db.StringProperty()
     fs_venue_id = db.StringProperty()
@@ -32,6 +37,7 @@ class Customer(db.Model):
     checkinCount = db.IntegerProperty()
     tipsHere = db.StringListProperty()
     twitter_bio = db.StringProperty()
+    has_card = db.BooleanProperty(default=False)
 
     @property
     def get_tips(self):
@@ -39,7 +45,7 @@ class Customer(db.Model):
         for key in self.tipsHere:
             listOfTips.append(Tip.get_by_key_name(key))
         return listOfTips
-        
+
 class ManagedVenue(db.Model):
     fs_venue_id = db.StringProperty()
     fs_manager = db.StringProperty()
@@ -50,7 +56,7 @@ class ManagedVenue(db.Model):
     mayorAlert = db.BooleanProperty(default=True)
     freqAlert = db.BooleanProperty(default=True)
     freqAlertVal = db.IntegerProperty(default=5)
-    
+
 class Tip(db.Model):
     fs_tip_id = db.StringProperty()
     fs_createdAt = db.IntegerProperty()
@@ -58,7 +64,7 @@ class Tip(db.Model):
     fs_todo_count = db.IntegerProperty()
     fs_done_count = db.IntegerProperty()
     fs_photo = db.StringProperty()
-    
+
 class HereNow(db.Model):
     temp_user_id = db.StringProperty()
     temp_photo = db.StringProperty()
